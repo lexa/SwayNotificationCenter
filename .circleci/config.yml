@@ -5,22 +5,37 @@ version: 2.1
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  say-hello:
+  build-rpkg:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
-      - image: cimg/base:stable
+      - image: fedora:latest
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
+      - run:
+          name: "install rpkg"
+          command: dnf -y install rpkg copr-cli
       - checkout
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: "COPR credentials"
+          command: |
+            mkdir -p ~/.config/;
+            echo "[copr-cli]" > ~/.config/copr
+            echo "login = $COPR_LOGIN" >> ~/.config/copr
+            echo "username = lexa" >> ~/.config/copr
+            echo "token = $COPR_TOKEN" >> ~/.config/copr
+            echo "copr_url = https://copr.fedorainfracloud.org" >> ~/.config/copr
+      - run:
+          name: "Check version"
+          command: rpkg nvr
+      - run:
+          name: "ping copr"
+          command: rpkg copr-build SwayNotificationCenter
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   say-hello-workflow:
     jobs:
-      - say-hello
+      - build-rpkg
